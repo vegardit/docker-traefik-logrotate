@@ -1,0 +1,63 @@
+# Copyright 2021 by Vegard IT GmbH, Germany, https://vegardit.com
+# SPDX-License-Identifier: Apache-2.0
+#
+# Author: Sebastian Thomschke, Vegard IT GmbH
+#
+# https://github.com/vegardit/docker-traefik-logrotate
+#
+# https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
+name: Build
+
+on:
+  push:
+    branches:
+    - '**'
+    tags-ignore:
+    - '**'
+    paths-ignore:
+    - '**/*.md'
+  schedule:
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/
+
+env:
+  DOCKER_IMAGE_REPO: vegardit/traefik-logrotate
+  DOCKER_IMAGE_TAG: latest
+  TRIVY_CACHE_DIR: ~/.trivy/cache
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Git Checkout
+      uses: actions/checkout@v2 #https://github.com/actions/checkout
+
+    - name: Cache trivy cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.TRIVY_CACHE_DIR }}
+        # https://github.com/actions/cache/issues/342#issuecomment-673371329
+        key: ${{ runner.os }}-trivy-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-trivy-
+
+    - name: Install dos2unix
+      # using '-o Acquire::Retries=3' to workaround sporadic connectivity issues "Could not connect to azure.archive.ubuntu.com:80"
+      # see https://github.com/actions/virtual-environments/issues/675
+      run: sudo apt-get install -o Acquire::Retries=3 --no-install-recommends -y dos2unix
+
+    - name: Build ${{ env.DOCKER_IMAGE_REPO }}:${{ env.DOCKER_IMAGE_TAG }}
+      shell: bash
+      env:
+        DOCKER_REGISTRY: docker.io
+        DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+        DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+      run: |
+        if [ "$GITHUB_REF" == "refs/heads/main" ]; then
+          export DOCKER_PUSH=1
+        fi
+        echo "$DOCKER_REGISTRY_TOKEN" | docker login -u="$DOCKER_REGISTRY_USERNAME" "$DOCKER_REGISTRY" --password-stdin
+        bash build-image.sh

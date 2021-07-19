@@ -1,0 +1,19 @@
+${LOGROTATE_LOGS} {
+  ${LOGROTATE_TRIGGER_INTERVAL}
+  maxsize ${LOGROTATE_TRIGGER_SIZE}
+  rotate ${LOGROTATE_MAX_BACKUPS}
+  start ${LOGROTATE_START_INDEX}
+
+  missingok
+  notifempty
+
+  compress
+  delaycompress
+
+  create 0644 root root
+
+  sharedscripts
+  postrotate
+     /opt/notify-traefik.sh
+  endscript
+}
