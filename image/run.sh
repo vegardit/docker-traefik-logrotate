@@ -39,7 +39,7 @@ fi
 # generate logrotate config
 #################################################
 
-log_directory=$(dirname $LOGROTATE_LOGS)
+log_directory=$(dirname "$LOGROTATE_LOGS")
 if [[ ! -e $log_directory ]]; then
   log ERROR "Directory [$log_directory] does not exist! Verify LOGROTATE_LOGS environment variable and volume mount."
   exit 1
