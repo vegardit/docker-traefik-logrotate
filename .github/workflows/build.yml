@@ -33,7 +33,7 @@ jobs:
 
     steps:
     - name: Git Checkout
-      uses: actions/checkout@v2 #https://github.com/actions/checkout
+      uses: actions/checkout@v3 #https://github.com/actions/checkout
 
     - name: Cache trivy cache
       uses: actions/cache@v2
