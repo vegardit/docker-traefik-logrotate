@@ -13,8 +13,8 @@ source /opt/bash-init.sh
 #################################################
 # perform log rotation
 #################################################
-log INFO "########## logroate START ##########"
+log INFO "########## logrotate START ##########"
 
 /usr/sbin/logrotate --verbose /etc/logrotate.conf 2> >(sed 's/^/  /' >&2)
 
-log INFO "########## logroate END ############"
+log INFO "########## logrotate END ############"
