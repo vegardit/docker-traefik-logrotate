@@ -13,10 +13,10 @@ source /opt/bash-init.sh
 #################################################
 # notify Traefik
 #################################################
-TRAEFIK_CONAINER_ID_COMMAND="${TRAEFIK_CONAINER_ID_COMMAND:-docker ps --quiet --filter ancestor=traefik}"
+TRAEFIK_CONTAINER_ID_COMMAND="${TRAEFIK_CONTAINER_ID_COMMAND:-docker ps --quiet --filter ancestor=traefik}"
 
-log INFO "Determining Traefik PID using [$TRAEFIK_CONAINER_ID_COMMAND]..."
-traefik_container_id=$(eval "${TRAEFIK_CONAINER_ID_COMMAND}")
+log INFO "Determining Traefik PID using [$TRAEFIK_CONTAINER_ID_COMMAND]..."
+traefik_container_id=$(eval "${TRAEFIK_CONTAINER_ID_COMMAND}")
 
 if [ -z $traefik_container_id ]; then
   log WARN "Could not determine Traefik PID. Is Traefik running?"
