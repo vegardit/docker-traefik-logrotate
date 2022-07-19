@@ -29,6 +29,7 @@ RUN --mount=type=bind,source=.shared,target=/mnt/shared \
      gzip \
      logrotate \
      tar \
+     tzdata \
      tini \
      && \
   #
