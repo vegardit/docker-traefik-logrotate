@@ -16,6 +16,7 @@ Lightweight Docker image based on [alpine:3](https://hub.docker.com/_/alpine?tab
 
 It is automatically built **daily** to include the latest OS security fixes.
 
+
 ## Usage
 
 Example `docker-compose.yml`:
@@ -58,8 +59,8 @@ services:
       restart_policy:
         condition: on-failure
         delay: 5s
-
 ```
+
 
 ## <a name="license"></a>License
 
