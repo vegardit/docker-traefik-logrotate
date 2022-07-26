@@ -29,7 +29,11 @@ if [[ $OSTYPE == "cygwin" || $OSTYPE == "msys" ]]; then
    project_root=$(cygpath -w "$project_root")
 fi
 
-DOCKER_BUILDKIT=1 docker build "$project_root" \
+# https://github.com/docker/buildx/#building-multi-platform-images
+docker run --privileged --rm tonistiigi/binfmt --install all
+export DOCKER_CLI_EXPERIMENTAL=enabled # prevents "docker: 'buildx' is not a docker command."
+docker buildx create --use # prevents: error: multiple platforms feature is currently not supported for docker driver. Please switch to a different driver (eg. "docker buildx create --use")
+docker buildx build "$project_root" \
    --file "image/Dockerfile" \
    --progress=plain \
    --pull \
@@ -40,21 +44,15 @@ DOCKER_BUILDKIT=1 docker build "$project_root" \
    --build-arg GIT_COMMIT_DATE="$(date -d @$(git log -1 --format='%at') --utc +'%Y-%m-%d %H:%M:%S UTC')" \
    --build-arg GIT_COMMIT_HASH="$(git rev-parse --short HEAD)" \
    --build-arg GIT_REPO_URL="$(git config --get remote.origin.url)" \
+   --platform linux/amd64,linux/arm64 \
    -t $image_name \
+   $(if [[ "${DOCKER_PUSH:-0}" == "1" ]]; then echo -n "--push"; fi) \
    "$@"
+docker buildx stop
+docker image pull $image_name
 
 
 #################################################
 # perform security audit
 #################################################
 bash "$shared_lib/cmd/audit-image.sh" $image_name
-
-
-#################################################
-# push image with tags to remote docker image registry
-#################################################
-if [[ "${DOCKER_PUSH:-0}" == "1" ]]; then
-  docker image tag $image_name $docker_registry/$image_name
-
-  docker push $docker_registry/$image_name
-fi
