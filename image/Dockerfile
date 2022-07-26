@@ -1,4 +1,7 @@
-#syntax=docker/dockerfile:1.2
+#syntax=docker/dockerfile:1.4
+# see https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md
+# see https://docs.docker.com/engine/reference/builder/#syntax
+#
 # Copyright 2021-2022 by Vegard IT GmbH, Germany, https://vegardit.com
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -16,24 +19,26 @@ USER root
 
 ARG BASE_LAYER_CACHE_KEY
 
-RUN --mount=type=bind,source=.shared,target=/mnt/shared \
-  set -eu && \
-  /mnt/shared/cmd/alpine-install-os-updates.sh && \
-  #
-  echo "#################################################" &&\
-  echo "Installing required packages..." && \
-  echo "#################################################" &&\
+RUN --mount=type=bind,source=.shared,target=/mnt/shared <<EOF
+
+  set -eu
+  /mnt/shared/cmd/alpine-install-os-updates.sh
+
+  echo "#################################################"
+  echo "Installing required packages..."
+  echo "#################################################"
   apk --no-cache add \
      bash \
      docker-cli \
      gzip \
      logrotate \
      tar \
-     tzdata \
      tini \
-     && \
-  #
+     tzdata
+
   /mnt/shared/cmd/alpine-cleanup.sh
+
+EOF
 
 ARG BUILD_DATE
 ARG GIT_BRANCH
@@ -63,17 +68,24 @@ ENV \
 COPY image/logrotate.conf.template /opt/logrotate.conf.template
 COPY image/*.sh /opt/
 
-RUN \
-  set -eu && \
-  echo -e "\
-GIT_REPO:    $GIT_REPO_URL\n\
-GIT_BRANCH:  $GIT_BRANCH\n\
-GIT_COMMIT:  $GIT_COMMIT_HASH @ $GIT_COMMIT_DATE\n\
-IMAGE_BUILD: $BUILD_DATE\n" >/opt/build_info && \
-  cat /opt/build_info && \
-  #
-  chmod 444 /opt/logrotate.conf.template && \
+RUN  <<EOF
+
+  set -eu
+
+  echo "#################################################"
+  echo "Writing build_info..."
+  echo "#################################################"
+  echo -e "
+GIT_REPO:    $GIT_REPO_URL
+GIT_BRANCH:  $GIT_BRANCH
+GIT_COMMIT:  $GIT_COMMIT_HASH @ $GIT_COMMIT_DATE
+IMAGE_BUILD: $BUILD_DATE" >/opt/build_info
+  cat /opt/build_info
+
+  chmod 444 /opt/logrotate.conf.template
   chmod 555 /opt/*.sh
+
+EOF
 
 COPY .shared/lib/bash-init.sh /opt/bash-init.sh
 
