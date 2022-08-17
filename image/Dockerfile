@@ -56,7 +56,7 @@ LABEL \
 ENV \
   INIT_SH_FILE='' \
   #
-  TRAEFIK_CONTAINER_ID_COMMAND="docker ps --quiet --filter ancestor=traefik" \
+  TRAEFIK_CONTAINER_ID_COMMAND="docker ps --no-trunc --quiet --filter label=org.opencontainers.image.title=Traefik" \
   LOGROTATE_LOGS="/var/log/traefik/*.log" \
   LOGROTATE_TRIGGER_INTERVAL=daily \
   LOGROTATE_TRIGGER_SIZE=50M \

@@ -13,7 +13,7 @@ source /opt/bash-init.sh
 #################################################
 # notify Traefik
 #################################################
-TRAEFIK_CONTAINER_ID_COMMAND="${TRAEFIK_CONTAINER_ID_COMMAND:-docker ps --quiet --filter ancestor=traefik}"
+TRAEFIK_CONTAINER_ID_COMMAND="${TRAEFIK_CONTAINER_ID_COMMAND:-docker ps --no-trunc --quiet --filter label=org.opencontainers.image.title=Traefik}"
 
 log INFO "Determining Traefik PID using [$TRAEFIK_CONTAINER_ID_COMMAND]..."
 traefik_container_id=$(eval "${TRAEFIK_CONTAINER_ID_COMMAND}")

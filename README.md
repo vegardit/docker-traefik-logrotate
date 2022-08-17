@@ -54,7 +54,7 @@ services:
       CRON_SCHEDULE: "* * * * *"
       CRON_LOG_LEVEL: 8                  # see https://unix.stackexchange.com/a/414010/378036
       # command to determine the id of the container running Traefik:
-      TRAEFIK_CONTAINER_ID_COMMAND: docker ps --quiet --filter ancestor=traefik
+      TRAEFIK_CONTAINER_ID_COMMAND: docker ps --no-trunc --quiet --filter label=org.opencontainers.image.title=Traefik
     deploy:
       restart_policy:
         condition: on-failure
