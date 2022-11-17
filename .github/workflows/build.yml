@@ -18,7 +18,7 @@ on:
     - '**/*.md'
   schedule:
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows
-    - cron: '0 0 * * *'
+    - cron: '0 17 * * 3'
   workflow_dispatch:
     # https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/
 

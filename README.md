@@ -14,7 +14,7 @@
 
 Lightweight Docker image based on [alpine:3](https://hub.docker.com/_/alpine?tab=tags&page=1&name=3) to be used in conjunction with a dockerized [Traefik](https://traefik.io) instance to rotate [Traefik's access logs](https://doc.traefik.io/traefik/observability/access-logs/).
 
-It is automatically built **daily** to include the latest OS security fixes.
+It is automatically built **weekly** to include the latest OS security fixes.
 
 
 ## Usage
