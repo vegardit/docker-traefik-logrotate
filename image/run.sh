@@ -8,7 +8,7 @@
 # https://github.com/vegardit/docker-traefik-logrotate
 #
 
-source /opt/bash-init.sh
+source /opt/bash-init.sh # https://github.com/vegardit/docker-shared/blob/v1/lib/bash-init.sh
 
 #################################################
 # print header

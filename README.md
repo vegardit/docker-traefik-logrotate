@@ -51,6 +51,9 @@ services:
       LOGROTATE_TRIGGER_SIZE: 50M        # rotate if log file size reaches 50MB
       LOGROTATE_MAX_BACKUPS: 14          # keep 14 backup copies per rotated log file
       LOGROTATE_START_INDEX: 1           # first rotated file is called access.1.log
+      LOGROTATE_FILE_MODE: 0644          # file mode of the rotated file
+      LOGROTATE_FILE_USER: root          # owning user of the rotated file
+      LOGROTATE_FILE_GROUP: root         # owning group of the rotated file
       CRON_SCHEDULE: "* * * * *"
       CRON_LOG_LEVEL: 8                  # see https://unix.stackexchange.com/a/414010/378036
       # command to determine the id of the container running Traefik:

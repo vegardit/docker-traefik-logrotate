@@ -10,7 +10,7 @@ ${LOGROTATE_LOGS} {
   compress
   delaycompress
 
-  create 0644 root root
+  create ${LOGROTATE_FILE_MODE} ${LOGROTATE_FILE_USER} ${LOGROTATE_FILE_GROUP}
 
   sharedscripts
   postrotate
