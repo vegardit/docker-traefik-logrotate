@@ -50,15 +50,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-trivy-
 
-    - name: Configure APT
-      run: |
-        # Workaround to avoid sporadic connectivity issues "Could not connect to azure.archive.ubuntu.com:80"
-        # see https://github.com/actions/virtual-environments/issues/675
-        echo 'APT::Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/80-acquire-retries
-        if ! curl --max-time 3 --output /dev/null --silent --head --fail "http://azure.archive.ubuntu.com/ubuntu/dists/"; then
-          sudo sed -i 's/azure\.//' /etc/apt/sources.list
-          sudo apt-get update
-        fi
+    - name: Configure fast APT repository mirror
+      uses: vegardit/fast-apt-mirror.sh@v1
 
     - name: Install dos2unix
       run: sudo apt-get install --no-install-recommends -y dos2unix
