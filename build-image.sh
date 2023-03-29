@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 #
-# Copyright 2021-2022 by Vegard IT GmbH, Germany, https://vegardit.com
+# SPDX-FileCopyrightText: © Vegard IT GmbH (https://vegardit.com)
+# SPDX-FileContributor: Sebastian Thomschke
 # SPDX-License-Identifier: Apache-2.0
-#
-# Author: Sebastian Thomschke, Vegard IT GmbH
-#
-# https://github.com/vegardit/docker-traefik-logrotate
-#
+# SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
 
 shared_lib="$(dirname $0)/.shared"
 [ -e "$shared_lib" ] || curl -sSf https://raw.githubusercontent.com/vegardit/docker-shared/v1/download.sh?_=$(date +%s) | bash -s v1 "$shared_lib" || exit 1
@@ -55,4 +52,6 @@ docker image pull $image_name
 #################################################
 # perform security audit
 #################################################
-bash "$shared_lib/cmd/audit-image.sh" $image_name
+if [[ "${DOCKER_AUDIT_IMAGE:-1}" == 1 ]]; then
+   bash "$shared_lib/cmd/audit-image.sh" $image_name
+fi

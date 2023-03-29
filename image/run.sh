@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 #
-# Copyright 2021-2022 by Vegard IT GmbH, Germany, https://vegardit.com
+# SPDX-FileCopyrightText: © Vegard IT GmbH (https://vegardit.com)
+# SPDX-FileContributor: Sebastian Thomschke
 # SPDX-License-Identifier: Apache-2.0
-#
-# Author: Sebastian Thomschke, Vegard IT GmbH
-#
-# https://github.com/vegardit/docker-traefik-logrotate
+# SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
 #
 
 source /opt/bash-init.sh # https://github.com/vegardit/docker-shared/blob/v1/lib/bash-init.sh
