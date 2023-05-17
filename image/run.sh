@@ -34,6 +34,21 @@ fi
 
 
 #################################################
+# creating user/group if required
+#################################################
+# to prevent logorate error "error: /etc/logrotate.conf:13 unknown user '1234'"
+if [[ $LOGROTATE_FILE_USER =~ ^[0-9]+$ ]] && ! getent passwd $LOGROTATE_FILE_USER >/dev/null; then
+  log INFO "Creating user with UID [$LOGROTATE_FILE_USER]..."
+  adduser u$LOGROTATE_FILE_USER -u $LOGROTATE_FILE_USER -D -H
+fi
+
+if [[ $LOGROTATE_FILE_GROUP =~ ^[0-9]+$ ]] && ! getent group $LOGROTATE_FILE_GROUP >/dev/null; then
+  log INFO "Creating group with GID [$LOGROTATE_FILE_GROUP]..."
+  addgroup g$LOGROTATE_FILE_GROUP -g $LOGROTATE_FILE_GROUP
+fi
+
+
+#################################################
 # generate logrotate config
 #################################################
 
