@@ -21,7 +21,7 @@ image_name=$image_repo:${DOCKER_IMAGE_TAG:-latest}
 #################################################
 # build the image
 #################################################
-echo "Building docker image [$image_name]..."
+log INFO "Building docker image [$image_name]..."
 if [[ $OSTYPE == "cygwin" || $OSTYPE == "msys" ]]; then
    project_root=$(cygpath -w "$project_root")
 fi
@@ -31,9 +31,10 @@ docker run --privileged --rm tonistiigi/binfmt --install all
 export DOCKER_CLI_EXPERIMENTAL=enabled # prevents "docker: 'buildx' is not a docker command."
 docker buildx create --use # prevents: error: multiple platforms feature is currently not supported for docker driver. Please switch to a different driver (eg. "docker buildx create --use")
 docker buildx build "$project_root" \
-   --file "image/Dockerfile" \
+   --file "image/${DOCKER_FILE:-Dockerfile}" \
    --progress=plain \
    --pull \
+   --build-arg INSTALL_SUPPORT_TOOLS=${INSTALL_SUPPORT_TOOLS:-0} \
    `# using the current date as value for BASE_LAYER_CACHE_KEY, i.e. the base layer cache (that holds system packages with security updates) will be invalidate once per day` \
    --build-arg BASE_LAYER_CACHE_KEY=$base_layer_cache_key \
    --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
@@ -41,9 +42,9 @@ docker buildx build "$project_root" \
    --build-arg GIT_COMMIT_DATE="$(date -d @$(git log -1 --format='%at') --utc +'%Y-%m-%d %H:%M:%S UTC')" \
    --build-arg GIT_COMMIT_HASH="$(git rev-parse --short HEAD)" \
    --build-arg GIT_REPO_URL="$(git config --get remote.origin.url)" \
-   --platform linux/amd64,linux/arm64 \
+   --platform linux/amd64,linux/arm64,linux/arm/v7 \
    -t $image_name \
-   $(if [[ "${DOCKER_PUSH:-0}" == "1" ]]; then echo -n "--push"; fi) \
+   $(if [[ "${DOCKER_PUSH:-0}" == "true" ]]; then echo -n "--push"; fi) \
    "$@"
 docker buildx stop
 docker image pull $image_name
