@@ -60,6 +60,7 @@
 *.php        text
 *.python     text
 *.sql        text
+**/Dockerfile text eol=lf
 
 
 # Archives

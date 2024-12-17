@@ -1,12 +1,13 @@
-# vegardit/traefik-logrotate
+# vegardit/traefik-logrotate <a href="https://github.com/vegardit/traefik-logrotate/" title="GitHub Repo"><img height="30" src="https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/github.svg?sanitize=true"></a>
 
 [![Build Status](https://github.com/vegardit/docker-traefik-logrotate/workflows/Build/badge.svg "GitHub Actions")](https://github.com/vegardit/docker-traefik-logrotate/actions?query=workflow%3ABuild)
 [![License](https://img.shields.io/github/license/vegardit/docker-traefik-logrotate.svg?label=license)](#license)
 [![Docker Pulls](https://img.shields.io/docker/pulls/vegardit/traefik-logrotate.svg)](https://hub.docker.com/r/vegardit/traefik-logrotate)
 [![Docker Stars](https://img.shields.io/docker/stars/vegardit/traefik-logrotate.svg)](https://hub.docker.com/r/vegardit/traefik-logrotate)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.1%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 1. [What is it?](#what-is-it)
+1. [Usage](#usage)
 1. [License](#license)
 
 
@@ -17,20 +18,18 @@ Lightweight Docker image based on [alpine:3](https://hub.docker.com/_/alpine?tab
 It is automatically built **weekly** to include the latest OS security fixes.
 
 
-## Usage
+## <a name="usage"></a>Usage
 
 Example `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
 
   traefik:
     image: traefik:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/traefik:/var/log/traefik:rw # folder containing access.log file
+      - /var/log/traefik:/var/log/traefik:rw  # folder containing access.log file
     deploy:
       restart_policy:
         condition: on-failure

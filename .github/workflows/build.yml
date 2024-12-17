@@ -3,22 +3,31 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
 #
-# https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
 name: Build
 
 on:
   push:
-    branches:    # build all branches
-    - '**'
-    tags-ignore: # but don't build tags
+    branches-ignore:  # build all branches except:
+    - 'dependabot/**'  # prevent GHA triggered twice (once for commit to the branch and once for opening/syncing the PR)
+    tags-ignore:  # don't build tags
     - '**'
     paths-ignore:
     - '**/*.md'
+    - '.editorconfig'
+    - '.git*'
     - '.github/*.yml'
-  schedule:
-    # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows
-    - cron: '0 17 * * 3'
+    - '.github/workflows/stale.yml'
   pull_request:
+    paths-ignore:
+    - '**/*.md'
+    - '.editorconfig'
+    - '.git*'
+    - '.github/*.yml'
+    - '.github/workflows/stale.yml'
+  schedule:
+    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+    - cron: '0 17 * * 3'
   workflow_dispatch:
     # https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/
 
@@ -32,15 +41,35 @@ env:
   TRIVY_CACHE_DIR: ~/.trivy/cache
 
 jobs:
+
+  ###########################################################
   build:
+  ###########################################################
+
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
-    - name: Show environment variables
+    - name: "Show: GitHub context"
+      env:
+        GITHUB_CONTEXT: ${{ toJSON(github) }}
+      run: echo $GITHUB_CONTEXT
+
+
+    - name: "Show: environment variables"
       run: env | sort
 
+
     - name: Git Checkout
-      uses: actions/checkout@v4 #https://github.com/actions/checkout
+      uses: actions/checkout@v4  # https://github.com/actions/checkout
+
+
+    - name: Check Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: image/Dockerfile
+        ignore: DL3002,DL3018,SC3037  # https://github.com/hadolint/hadolint/wiki/DL3002
+
 
     - name: Cache trivy cache
       uses: actions/cache@v4
@@ -51,25 +80,43 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-trivy-
 
+
     - name: Configure fast APT repository mirror
       uses: vegardit/fast-apt-mirror.sh@v1
+
 
     - name: Install dos2unix
       run: sudo apt-get install --no-install-recommends -y dos2unix
 
-    - name: Login to docker.io
-      if: ${{ github.ref_name == 'main' && github.event_name != 'pull_request' && !env.ACT }} # https://github.com/nektos/act#skipping-steps
+
+    - name: "Determine if docker images shall be published"
       run: |
-        docker login docker.io -u "${{ secrets.DOCKER_HUB_USERNAME }}" -p "${{ secrets.DOCKER_HUB_TOKEN }}"
+        # ACT -> https://nektosact.com/usage/index.html#skipping-steps
+        set -x
+        if [[ $GITHUB_REF_NAME == 'main' && $GITHUB_EVENT_NAME != 'pull_request' && -z "$ACT" ]]; then
+          echo "DOCKER_PUSH_GHCR=true" >> "$GITHUB_ENV"
+          if [[ -n "${{ secrets.DOCKER_HUB_USERNAME }}" ]]; then
+            echo "DOCKER_PUSH=true" >> "$GITHUB_ENV"
+          fi
+        fi
+
+
+    - name: Login to docker.io
+      if: ${{ env.DOCKER_PUSH }}
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
 
     - name: Build ${{ env.DOCKER_IMAGE_REPO }}:${{ env.DOCKER_IMAGE_TAG }}
       env:
-        DOCKER_PUSH: ${{ github.ref_name == 'main' && github.event_name != 'pull_request' && !env.ACT }}
         TRIVY_GITHUB_TOKEN: ${{ github.token }}
       run: bash build-image.sh
 
+
     - name: Publish Docker image to GH registry
-      if: ${{ github.ref_name == 'main' && github.event_name != 'pull_request' && !env.ACT }} # https://github.com/nektos/act#skipping-steps
+      if: ${{ env.DOCKER_PUSH }}
       uses: truemark/skopeo-copy-action@v1 # https://github.com/truemark/skopeo-copy-action
       with:
         src-image: "docker://docker.io/${{ env.DOCKER_IMAGE_REPO }}:${{ env.DOCKER_IMAGE_TAG }}"
@@ -78,9 +125,11 @@ jobs:
         dest-password: "${{ github.token }}"
         multi-arch: "all"
 
+
     - name: Delete untagged images
       uses: actions/github-script@v7
-      if: ${{ github.ref_name == 'main' && github.event_name != 'pull_request' && !env.ACT }} # https://github.com/nektos/act#skipping-steps
+      if: ${{ env.DOCKER_PUSH_GHCR }}
+      continue-on-error: true
       with:
         github-token: ${{ secrets.GHA_DELETE_PACKAGES }}
         script: |
