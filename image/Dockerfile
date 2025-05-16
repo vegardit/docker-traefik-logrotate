@@ -1,5 +1,5 @@
-#syntax=docker/dockerfile:1.4
-# see https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md
+#syntax=docker/dockerfile:1
+# see https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/reference.md
 # see https://docs.docker.com/engine/reference/builder/#syntax
 #
 # SPDX-FileCopyrightText: © Vegard IT GmbH (https://vegardit.com)
@@ -13,26 +13,31 @@ FROM alpine:3
 
 LABEL maintainer="Vegard IT GmbH (vegardit.com)"
 
+# https://github.com/hadolint/hadolint/wiki/DL3002 Last USER should not be root
+# hadolint ignore=DL3002
 USER root
 
 ARG BASE_LAYER_CACHE_KEY
 
-RUN --mount=type=bind,source=.shared,target=/mnt/shared <<EOF
+SHELL ["/bin/ash", "-euo", "pipefail", "-c"]
 
-  set -eu
+# https://github.com/hadolint/hadolint/wiki/DL3018 Pin versions
+# hadolint ignore=DL3018
+RUN --mount=type=bind,source=.shared,target=/mnt/shared <<EOF
+  #!/bin/ash
   /mnt/shared/cmd/alpine-install-os-updates.sh
 
   echo "#################################################"
   echo "Installing required packages..."
   echo "#################################################"
-  apk --no-cache add \
-     bash \
-     docker-cli \
-     gzip \
-     logrotate \
-     tar \
-     tini \
-     tzdata
+  apk add --no-cache \
+    bash \
+    docker-cli \
+    gzip \
+    logrotate \
+    tar \
+    tini \
+    tzdata
 
   /mnt/shared/cmd/alpine-cleanup.sh
 
@@ -45,10 +50,10 @@ ARG GIT_COMMIT_DATE
 ARG GIT_REPO_URL
 
 LABEL \
- org.label-schema.schema-version="1.0" \
- org.label-schema.build-date=$BUILD_DATE \
- org.label-schema.vcs-ref=$GIT_COMMIT_HASH \
- org.label-schema.vcs-url=$GIT_REPO_URL
+  org.label-schema.schema-version="1.0" \
+  org.label-schema.build-date=$BUILD_DATE \
+  org.label-schema.vcs-ref=$GIT_COMMIT_HASH \
+  org.label-schema.vcs-url=$GIT_REPO_URL
 
 # Default configuration: can be overridden at the docker command line
 ENV \
@@ -69,10 +74,8 @@ ENV \
 COPY image/logrotate.conf.template /opt/logrotate.conf.template
 COPY image/*.sh /opt/
 
-RUN  <<EOF
-
-  set -eu
-
+RUN <<EOF
+  #!/bin/ash
   echo "#################################################"
   echo "Writing build_info..."
   echo "#################################################"

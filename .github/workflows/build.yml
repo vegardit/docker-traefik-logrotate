@@ -36,7 +36,7 @@ defaults:
     shell: bash
 
 env:
-  DOCKER_IMAGE_REPO: vegardit/traefik-logrotate
+  DOCKER_IMAGE_REPO: ${{ github.repository_owner }}/traefik-logrotate
   DOCKER_IMAGE_TAG: latest
   TRIVY_CACHE_DIR: ~/.trivy/cache
 
@@ -46,7 +46,7 @@ jobs:
   build:
   ###########################################################
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # https://github.com/actions/runner-images#available-images
     timeout-minutes: 5
 
     steps:
@@ -68,7 +68,6 @@ jobs:
       uses: hadolint/hadolint-action@v3.1.0
       with:
         dockerfile: image/Dockerfile
-        ignore: DL3002,DL3018,SC3037  # https://github.com/hadolint/hadolint/wiki/DL3002
 
 
     - name: Cache trivy cache
@@ -101,6 +100,11 @@ jobs:
         fi
 
 
+    - name: Install regclient
+      if: ${{ env.DOCKER_PUSH_GHCR }}
+      uses: iarekylew00t/regctl-installer@v3
+
+
     - name: Login to docker.io
       if: ${{ env.DOCKER_PUSH }}
       uses: docker/login-action@v3
@@ -109,21 +113,19 @@ jobs:
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
 
+    - name: Login to ghcr.io
+      if: ${{ env.DOCKER_PUSH_GHCR }}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+
     - name: Build ${{ env.DOCKER_IMAGE_REPO }}:${{ env.DOCKER_IMAGE_TAG }}
       env:
         TRIVY_GITHUB_TOKEN: ${{ github.token }}
       run: bash build-image.sh
-
-
-    - name: Publish Docker image to GH registry
-      if: ${{ env.DOCKER_PUSH }}
-      uses: truemark/skopeo-copy-action@v1 # https://github.com/truemark/skopeo-copy-action
-      with:
-        src-image: "docker://docker.io/${{ env.DOCKER_IMAGE_REPO }}:${{ env.DOCKER_IMAGE_TAG }}"
-        dest-image: "docker://ghcr.io/${{ env.DOCKER_IMAGE_REPO }}:${{ env.DOCKER_IMAGE_TAG }}"
-        dest-username: "${{ github.actor }}"
-        dest-password: "${{ github.token }}"
-        multi-arch: "all"
 
 
     - name: Delete untagged images
