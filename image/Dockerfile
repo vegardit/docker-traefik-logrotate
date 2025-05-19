@@ -8,6 +8,7 @@
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
 #
 
+# https://hub.docker.com/_/alpine/tags?name=3
 # https://github.com/alpinelinux/docker-alpine/blob/master/Dockerfile
 FROM alpine:3
 
