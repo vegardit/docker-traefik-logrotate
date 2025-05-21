@@ -8,9 +8,13 @@
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
 #
 
-# https://hub.docker.com/_/alpine/tags?name=3
+# https://hub.docker.com/_/alpine/tags?name=latest
 # https://github.com/alpinelinux/docker-alpine/blob/master/Dockerfile
-FROM alpine:3
+ARG BASE_IMAGE=alpine:latest
+
+# https://github.com/hadolint/hadolint/wiki/DL3006 Always tag the version of an image explicitly
+# hadolint ignore=DL3006
+FROM ${BASE_IMAGE} AS builder
 
 LABEL maintainer="Vegard IT GmbH (vegardit.com)"
 

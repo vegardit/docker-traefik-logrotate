@@ -4,9 +4,9 @@
 # SPDX-FileContributor: Sebastian Thomschke
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
-#
 
-source /opt/bash-init.sh # https://github.com/vegardit/docker-shared/blob/v1/lib/bash-init.sh
+# shellcheck disable=SC1091  # Not following: /opt/bash-init.sh was not specified as input
+source /opt/bash-init.sh  # https://github.com/vegardit/docker-shared/blob/v1/lib/bash-init.sh
 
 #################################################
 # print header
@@ -28,8 +28,9 @@ log INFO "Timezone is $(date +"%Z %z")"
 # load custom init script if specified
 #################################################
 if [[ -f $INIT_SH_FILE ]]; then
-  log INFO "Loading [$INIT_SH_FILE]..."
-  source "$INIT_SH_FILE"
+   log INFO "Loading [$INIT_SH_FILE]..."
+   # shellcheck disable=SC1090  # ShellCheck can't follow non-constant source
+   source "$INIT_SH_FILE"
 fi
 
 
@@ -37,14 +38,14 @@ fi
 # creating user/group if required
 #################################################
 # to prevent logorate error "error: /etc/logrotate.conf:13 unknown user '1234'"
-if [[ $LOGROTATE_FILE_USER =~ ^[0-9]+$ ]] && ! getent passwd $LOGROTATE_FILE_USER >/dev/null; then
+if [[ $LOGROTATE_FILE_USER =~ ^[0-9]+$ ]] && ! getent passwd "$LOGROTATE_FILE_USER" >/dev/null; then
   log INFO "Creating user with UID [$LOGROTATE_FILE_USER]..."
-  adduser u$LOGROTATE_FILE_USER -u $LOGROTATE_FILE_USER -D -H
+  adduser "u$LOGROTATE_FILE_USER" -u "$LOGROTATE_FILE_USER" -D -H
 fi
 
-if [[ $LOGROTATE_FILE_GROUP =~ ^[0-9]+$ ]] && ! getent group $LOGROTATE_FILE_GROUP >/dev/null; then
+if [[ $LOGROTATE_FILE_GROUP =~ ^[0-9]+$ ]] && ! getent group "$LOGROTATE_FILE_GROUP" >/dev/null; then
   log INFO "Creating group with GID [$LOGROTATE_FILE_GROUP]..."
-  addgroup g$LOGROTATE_FILE_GROUP -g $LOGROTATE_FILE_GROUP
+  addgroup "g$LOGROTATE_FILE_GROUP" -g "$LOGROTATE_FILE_GROUP"
 fi
 
 
@@ -62,7 +63,7 @@ log INFO "Generating [/etc/logrotate.conf] based on template [/opt/logrotate.con
 if interpolated=$(interpolate < /opt/logrotate.conf.template); then
   echo "$interpolated" > /etc/logrotate.conf
   chmod 644 /etc/logrotate.conf
-  cat /etc/logrotate.conf | sed 's/^/  /'
+  sed 's/^/  /' /etc/logrotate.conf
 else
   exit $?
 fi
@@ -75,4 +76,4 @@ log INFO "Scheduling logrotate cronjob..."
 echo "$CRON_SCHEDULE /opt/rotate-logs.sh" | crontab -
 
 log INFO "Starting cron daemon..."
-exec /usr/sbin/crond -f -l $CRON_LOG_LEVEL
+exec /usr/sbin/crond -f -l "$CRON_LOG_LEVEL"

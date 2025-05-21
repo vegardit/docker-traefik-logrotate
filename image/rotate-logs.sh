@@ -4,9 +4,9 @@
 # SPDX-FileContributor: Sebastian Thomschke
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
-#
 
-source /opt/bash-init.sh
+# shellcheck disable=SC1091  # Not following: /opt/bash-init.sh was not specified as input
+source /opt/bash-init.sh  # https://github.com/vegardit/docker-shared/blob/v1/lib/bash-init.sh
 
 #################################################
 # perform log rotation

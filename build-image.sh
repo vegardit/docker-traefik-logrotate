@@ -16,20 +16,10 @@ source "$shared_lib/lib/build-image-init.sh"
 
 
 #################################################
-# check prereqs
-#################################################
-
-if [[ "${DOCKER_PUSH:-}" == "true" ]]; then
-   if ! hash regctl &>/dev/null; then
-      log ERROR "regctl (aka regclient) command line tool is misssing!"
-   fi
-fi
-
-
-#################################################
 # specify target image repo/tag
 #################################################
 image_repo=${DOCKER_IMAGE_REPO:-vegardit/traefik-logrotate}
+base_image_name=${DOCKER_BASE_IMAGE:-alpine:3}
 image_name=$image_repo:${DOCKER_IMAGE_TAG:-latest}
 
 
@@ -37,7 +27,7 @@ image_name=$image_repo:${DOCKER_IMAGE_TAG:-latest}
 # build the image
 #################################################
 log INFO "Building docker image [$image_name]..."
-if [[ $OSTYPE == cygwin || $OSTYPE == msys ]]; then
+if [[ $OSTYPE == "cygwin" || $OSTYPE == "msys" ]]; then
    project_root=$(cygpath -w "$project_root")
 fi
 
@@ -45,11 +35,11 @@ fi
 set -x
 
 docker --version
-export DOCKER_BUILD_KIT=1
+export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=1 # prevents "docker: 'buildx' is not a docker command."
 
 # Register QEMU emulators for all architectures so Docker can run and build multi-arch images
-docker run --privileged --rm tonistiigi/binfmt --install all
+docker run --privileged --rm ghcr.io/dockerhub-mirror/tonistiigi__binfmt --install all
 
 # https://docs.docker.com/build/buildkit/configure/#resource-limiting
 echo "
@@ -59,32 +49,33 @@ echo "
 
 docker buildx version # ensures buildx is enabled
 docker buildx create --config /etc/buildkitd.toml --use # prevents: error: multiple platforms feature is currently not supported for docker driver. Please switch to a different driver (eg. "docker buildx create --use")
-# shellcheck disable=SC2154  # base_layer_cache_key is referenced but not assigned.
+trap 'docker buildx stop' EXIT
+# shellcheck disable=SC2154,SC2046  # base_layer_cache_key is referenced but not assigned / Quote this to prevent word splitting
 docker buildx build "$project_root" \
    --file "image/Dockerfile" \
    --progress=plain \
    --pull \
-   --build-arg "INSTALL_SUPPORT_TOOLS=${INSTALL_SUPPORT_TOOLS:-0}" \
+   --build-arg INSTALL_SUPPORT_TOOLS="${INSTALL_SUPPORT_TOOLS:-0}" \
    `# using the current date as value for BASE_LAYER_CACHE_KEY, i.e. the base layer cache (that holds system packages with security updates) will be invalidate once per day` \
    --build-arg BASE_LAYER_CACHE_KEY="$base_layer_cache_key" \
+   --build-arg BASE_IMAGE="$base_image_name" \
    --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
    --build-arg GIT_BRANCH="${GIT_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}" \
    --build-arg GIT_COMMIT_DATE="$(date -d "@$(git log -1 --format='%at')" --utc +'%Y-%m-%d %H:%M:%S UTC')" \
    --build-arg GIT_COMMIT_HASH="$(git rev-parse --short HEAD)" \
    --build-arg GIT_REPO_URL="$(git config --get remote.origin.url)" \
-   $(if [[ "${ACT:-}" == "true" || "${DOCKER_PUSH:-}" != "true" ]]; then \
+   $(if [[ ${ACT:-} == "true" || ${DOCKER_PUSH:-} != "true" ]]; then \
       echo -n "--load --output type=docker"; \
    else \
       echo -n "--platform linux/amd64,linux/arm64,linux/arm/v7"; \
    fi) \
    --tag "$image_name" \
-   $(if [[ "${DOCKER_PUSH:-}" == "true" ]]; then echo -n "--push"; fi) \
+   $(if [[ ${DOCKER_PUSH:-} == "true" ]]; then echo -n "--push"; fi) \
    "$@"
-docker buildx stop
 set +x
 
-if [[ "${DOCKER_PUSH:-}" == "true" ]]; then
-   docker image pull $image_name
+if [[ ${DOCKER_PUSH:-} == "true" ]]; then
+   docker image pull "$image_name"
 fi
 
 
@@ -100,7 +91,7 @@ echo
 #################################################
 # perform security audit
 #################################################
-if [[ ${DOCKER_AUDIT_IMAGE:-1} == 1 ]]; then
+if [[ ${DOCKER_AUDIT_IMAGE:-1} == "1" ]]; then
    bash "$shared_lib/cmd/audit-image.sh" "$image_name"
 fi
 
@@ -109,5 +100,11 @@ fi
 # push image to ghcr.io
 #################################################
 if [[ ${DOCKER_PUSH_GHCR:-} == true ]]; then
-   (set -x; regctl image copy "$image_name" "ghcr.io/$image_name")
+   set -x
+   docker run --rm \
+      -u "$(id -u):$(id -g)" -e HOME -v "$HOME:$HOME" \
+      -v /etc/docker/certs.d:/etc/docker/certs.d:ro \
+      ghcr.io/regclient/regctl:latest \
+      image copy "$image_name" "ghcr.io/$image_name"
+   set +x
 fi
