@@ -13,9 +13,10 @@
 
 ## <a name="what-is-it"></a>What is it?
 
-Lightweight Docker image based on [alpine:3](https://hub.docker.com/_/alpine?tab=tags&page=1&name=3) to be used in conjunction with a dockerized [Traefik](https://traefik.io) instance to rotate [Traefik's access logs](https://doc.traefik.io/traefik/observability/access-logs/).
+A lightweight, multi-arch Docker image based on [alpine:3](https://hub.docker.com/_/alpine/tags?name=3) to be used in conjunction with
+a dockerized [Traefik](https://traefik.io) instance to rotate [Traefik's access logs](https://doc.traefik.io/traefik/observability/access-logs/).
 
-It is automatically built **weekly** to include the latest OS security fixes.
+Automatically rebuilt **weekly** to include the latest OS security fixes.
 
 
 ## <a name="usage"></a>Usage
