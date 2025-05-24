@@ -95,8 +95,8 @@ run_step() {
 
   # Execute command with tracing
   local rc
-  printf '\033[90m+ %s:%d:\033[1m %s\033[0;1m\n'  "${BASH_SOURCE[1]}" "${BASH_LINENO[0]}" "$cmd"
-  eval -- "$cmd"
+  printf '\033[90m+ %s:%d:\033[0;1m %s\033[0m\n'  "${BASH_SOURCE[1]}" "${BASH_LINENO[0]}" "$cmd"
+  (trap - EXIT; eval -- "$cmd")
   rc=$?
 
   # Footer
@@ -226,8 +226,8 @@ run_step "Building docker image [$image_name]..." -- \
 # load image into local docker daemon for testing
 #################################################
 if [[ ${build_multi_arch:-} == "true" ]]; then
-  run_step "Load image into local daemon for testing" -- "
-    docker pull '$LOCAL_REGISTRY/$image_name'
+  run_step "Load image into local daemon for testing" @@ "
+    docker pull '$LOCAL_REGISTRY/$image_name';
     docker tag '$LOCAL_REGISTRY/$image_name' '$image_name'
   "
 fi
