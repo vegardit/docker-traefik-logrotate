@@ -28,9 +28,9 @@ log INFO "Timezone is $(date +"%Z %z")"
 # load custom init script if specified
 #################################################
 if [[ -f $INIT_SH_FILE ]]; then
-   log INFO "Loading [$INIT_SH_FILE]..."
-   # shellcheck disable=SC1090  # ShellCheck can't follow non-constant source
-   source "$INIT_SH_FILE"
+  log INFO "Loading [$INIT_SH_FILE]..."
+  # shellcheck disable=SC1090  # ShellCheck can't follow non-constant source
+  source "$INIT_SH_FILE"
 fi
 
 
