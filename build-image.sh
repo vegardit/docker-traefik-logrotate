@@ -11,6 +11,71 @@ shared_lib="$(dirname "${BASH_SOURCE[0]}")/.shared"
 source "$shared_lib/lib/build-image-init.sh"
 
 
+run_step() {
+  local -a args
+  args=("$@")
+
+  # Need at least one argument
+  (( ${#args[@]} )) || {
+    log ERROR "Usage: run_step [<title> --] <cmd> [args...]"
+    return 2
+  }
+
+  # Parse title and cmd
+  local title
+  local -a cmd_parts
+  cmd_parts=()
+  if [[ ${args[0]} == -- ]]; then
+    title="${args[*]:1}"
+    cmd_parts=( "${args[@]:1}" )
+  elif (( ${#args[@]} > 1 )) && [[ ${args[1]} == -- ]]; then
+    title=${args[0]}
+    cmd_parts=( "${args[@]:2}" )
+  else
+    cmd_parts=( "${args[@]}" )
+    title="${args[*]}"
+  fi
+
+  # Must have a command to run
+  (( ${#cmd_parts[@]} )) || {
+    log ERROR "Usage: run_step [<title> --] <cmd> [args...]"
+    return 2
+  }
+
+  # Build the eval-safe command string
+  local cmd part
+  for part in "${cmd_parts[@]}"; do
+    cmd+=" $(printf '%q' "$part")"
+  done
+  cmd=${cmd# }  # strip the leading space
+
+  # Header
+  if [[ ${GITHUB_ACTIONS:-} == "true" && -z ${ACT:-} ]]; then
+    printf '::group::%s\n' "$title"
+  else
+    printf '═══════════════════════════════════════════════════════════\n'
+    printf '│ %s...\n' "$title"
+    printf '───────────────────────────────────────────────────────────\n'
+  fi
+
+  # Execute command with tracing
+  local rc
+  (eval "set -x; $cmd")
+  rc=$?
+
+  # Footer
+  if [[ ${GITHUB_ACTIONS:-} == "true" && -z ${ACT:-} ]]; then
+    echo "::endgroup::"
+  else
+    printf '───────────────────────────────────────────────────────────\n'
+    printf '│ %s ✓ \n' "$title"
+    printf '═══════════════════════════════════════════════════════════\n'
+  fi
+
+  return $rc
+}
+
+
 #################################################
 # declare image meta
 #################################################
@@ -45,10 +110,10 @@ fi
 #################################################
 # prepare docker
 #################################################
-(set -x; docker version)
+run_step -- docker version
 
 # https://github.com/docker/buildx/#building-multi-platform-images
-(set -x; docker buildx version) # ensures buildx is enabled
+run_step -- docker buildx version  # ensures buildx is enabled
 
 export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=1 # prevents "docker: 'buildx' is not a docker command." in older Docker versions
@@ -56,10 +121,10 @@ export DOCKER_CLI_EXPERIMENTAL=1 # prevents "docker: 'buildx' is not a docker co
 if [[ ${build_multi_arch:-} == "true" ]]; then
   # Use a temporary local registry to work around Docker/Buildx/BuildKit quirks,
   # enabling us to build/test multiarch images locally before pushing.
-  start_docker_registry LOCAL_REGISTRY
+  run_step --start_docker_registry LOCAL_REGISTRY
 
   # Register QEMU emulators so Docker can run and build multi-arch images
-  (set -x; docker run --privileged --rm ghcr.io/dockerhub-mirror/tonistiigi__binfmt --install all)
+  run_step "Install QEMU emulators" -- docker run --privileged --rm ghcr.io/dockerhub-mirror/tonistiigi__binfmt --install all
 fi
 
 # https://docs.docker.com/build/buildkit/configure/#resource-limiting
@@ -69,13 +134,13 @@ echo "
 " | sudo tee /etc/buildkitd.toml
 
 builder_name="bx-$(date +%s)-$RANDOM"
-(set -x; docker buildx create \
+run_step "Configure buildx builder" -- docker buildx create \
   --name "$builder_name" \
   --bootstrap \
   --config /etc/buildkitd.toml \
   --driver-opt network=host `# required for buildx to access the temporary registry` \
   --driver docker-container \
-  --driver-opt image=ghcr.io/dockerhub-mirror/moby__buildkit:latest)
+  --driver-opt image=ghcr.io/dockerhub-mirror/moby__buildkit:latest
 trap 'docker buildx rm --force "$builder_name"' EXIT
 
 
@@ -83,8 +148,6 @@ trap 'docker buildx rm --force "$builder_name"' EXIT
 # build the image
 #################################################
 image_name=image_repo:${tags[0]}
-
-log INFO "Building docker image [$image_name]..."
 
 build_opts=(
   --file "image/Dockerfile"
@@ -119,15 +182,18 @@ if [[ $OSTYPE == "cygwin" || $OSTYPE == "msys" ]]; then
   project_root=$(cygpath -w "$project_root")
 fi
 
-(set -x; docker buildx build "${build_opts[@]}" "$project_root")
+run_step "Building docker image [$image_name]..." -- \
+  docker buildx build "${build_opts[@]}" "$project_root"
 
 
 #################################################
 # load image into local docker daemon for testing
 #################################################
 if [[ ${build_multi_arch:-} == "true" ]]; then
-  (set -x; docker pull "$LOCAL_REGISTRY/$image_name")
-  (set -x; docker tag "$LOCAL_REGISTRY/$image_name" "$image_name")
+  run_step "Load image into local daemon for testing" -- "
+    docker pull '$LOCAL_REGISTRY/$image_name'
+    docker tag '$LOCAL_REGISTRY/$image_name' '$image_name'
+  "
 fi
 
 
@@ -135,31 +201,30 @@ fi
 # perform security audit
 #################################################
 if [[ ${DOCKER_AUDIT_IMAGE:-1} == "1" ]]; then
-  bash "$shared_lib/cmd/audit-image.sh" "$image_name"
+  run_step "Auditing docker image [$image_name]" -- \
+   bash "$shared_lib/cmd/audit-image.sh" "$image_name"
 fi
 
 
 #################################################
 # test image
 #################################################
-echo
-log INFO "Testing docker image [$image_name]..."
-(set -x; docker run --pull=never --rm "$image_name" logrotate --version)
-echo
+run_step "Testing docker image [$image_name]" -- \
+  docker run --pull=never --rm "$image_name" logrotate --version
 
 
 #################################################
 # push image
 #################################################
 function regctl() {
-  (set -x;
-  docker run --rm \
+  run_step "regctl ${*}" -- \
+    docker run --rm \
     -u "$(id -u):$(id -g)" -e HOME -v "$HOME:$HOME" \
     -v /etc/docker/certs.d:/etc/docker/certs.d:ro \
     --network host `# required to access the temporary registry` \
     ghcr.io/regclient/regctl:latest \
     --host "reg=$LOCAL_REGISTRY,tls=disabled" \
-    "${@}")
+    "${@}"
 }
 
 if [[ ${DOCKER_PUSH:-} == "true" ]]; then
