@@ -121,7 +121,7 @@ export DOCKER_CLI_EXPERIMENTAL=1 # prevents "docker: 'buildx' is not a docker co
 if [[ ${build_multi_arch:-} == "true" ]]; then
   # Use a temporary local registry to work around Docker/Buildx/BuildKit quirks,
   # enabling us to build/test multiarch images locally before pushing.
-  run_step --start_docker_registry LOCAL_REGISTRY
+  run_step -- start_docker_registry LOCAL_REGISTRY
 
   # Register QEMU emulators so Docker can run and build multi-arch images
   run_step "Install QEMU emulators" -- docker run --privileged --rm ghcr.io/dockerhub-mirror/tonistiigi__binfmt --install all
