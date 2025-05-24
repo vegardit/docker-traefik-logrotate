@@ -11,65 +11,101 @@ shared_lib="$(dirname "${BASH_SOURCE[0]}")/.shared"
 source "$shared_lib/lib/build-image-init.sh"
 
 
+# run_step - execute a command and wrap its output in a titled section
+#
+# Usage:
+#   run_step [<title> --] <command> [args...]
+#   run_step [<title>] @@ <raw-shell-string>
+#
+# If <title> is omitted, the full command line (or raw string) becomes the title.
+#
+# Modes:
+#   --  safe: each argument is shell-escaped
+#   @@  raw: eval the entire string (pipes, redirects, etc.)
+#
+# On GitHub Actions (GITHUB_ACTIONS=true):
+#   ::group::<title>
+#     ...traced output..
+#   ::endgroup::
+#
+# Otherwise: prints box delimiters
 run_step() {
   local -a args
   args=("$@")
 
   # Need at least one argument
   (( ${#args[@]} )) || {
-    log ERROR "Usage: run_step [<title> --] <cmd> [args...]"
+    log ERROR "Usage: run_step [<title> --] <cmd> [args...] | [<title>] @@ <raw-shell-string>"
     return 2
   }
 
-  # Parse title and cmd
-  local title
-  local -a cmd_parts
-  cmd_parts=()
-  if [[ ${args[0]} == -- ]]; then
-    title="${args[*]:1}"
-    cmd_parts=( "${args[@]:1}" )
-  elif (( ${#args[@]} > 1 )) && [[ ${args[1]} == -- ]]; then
+  local cmd title
+  if [[ ${args[0]} == '@@' ]]; then
+    (( ${#args[@]} > 1 )) || {
+      log ERROR "Usage: run_step @@ <raw-shell-string>"
+      return 2
+    }
+    cmd=${args[1]}
+    title=$cmd
+  elif (( ${#args[@]} > 1 )) && [[ ${args[1]} == '@@' ]]; then
+   (( ${#args[@]} > 2 )) || {
+     log ERROR "Usage: run_step <title> @@ <raw-shell-string>"
+     return 2
+   }
     title=${args[0]}
-    cmd_parts=( "${args[@]:2}" )
+    cmd=${args[2]}
   else
-    cmd_parts=( "${args[@]}" )
-    title="${args[*]}"
+    # Parse title and cmd
+    local -a cmd_parts
+    cmd_parts=()
+    if [[ ${args[0]} == -- ]]; then
+      title="${args[*]:1}"
+      cmd_parts=( "${args[@]:1}" )
+    elif (( ${#args[@]} > 1 )) && [[ ${args[1]} == -- ]]; then
+      title=${args[0]}
+      cmd_parts=( "${args[@]:2}" )
+    else
+      cmd_parts=( "${args[@]}" )
+      title=${args[*]}
+    fi
+
+    # Must have a command to run
+    (( ${#cmd_parts[@]} )) || {
+      log ERROR "Usage: run_step [<title> --] <cmd> [args...] | [<title>] @@ <raw-shell-string>"
+      return 2
+    }
+
+    # Build the eval-safe command string
+    local part
+    for part in "${cmd_parts[@]}"; do
+      cmd+=" $(printf '%q' "$part")"
+    done
+    cmd=${cmd# }  # strip the leading space
   fi
-
-  # Must have a command to run
-  (( ${#cmd_parts[@]} )) || {
-    log ERROR "Usage: run_step [<title> --] <cmd> [args...]"
-    return 2
-  }
-
-  # Build the eval-safe command string
-  local cmd part
-  for part in "${cmd_parts[@]}"; do
-    cmd+=" $(printf '%q' "$part")"
-  done
-  cmd=${cmd# }  # strip the leading space
 
   # Header
   if [[ ${GITHUB_ACTIONS:-} == "true" && -z ${ACT:-} ]]; then
     printf '::group::%s\n' "$title"
   else
-    printf '═══════════════════════════════════════════════════════════\n'
-    printf '│ %s...\n' "$title"
-    printf '───────────────────────────────────────────────────────────\n'
+    # need to color each line separately for nektos/act
+    printf '\033[95m═══════════════════════════════════════════════════════════\033[0m\n'
+    printf '\033[95m│ %s...\033[0m\n' "$title"
+    printf '\033[95m───────────────────────────────────────────────────────────\033[0m\n'
   fi
 
   # Execute command with tracing
   local rc
-  (eval "set -x; $cmd")
+  printf '\033[90m+ %s:%d:\033[1m %s\033[0;1m\n'  "${BASH_SOURCE[1]}" "${BASH_LINENO[0]}" "$cmd"
+  (eval -- "$cmd")
   rc=$?
 
   # Footer
   if [[ ${GITHUB_ACTIONS:-} == "true" && -z ${ACT:-} ]]; then
     echo "::endgroup::"
   else
-    printf '───────────────────────────────────────────────────────────\n'
-    printf '│ %s ✓ \n' "$title"
-    printf '═══════════════════════════════════════════════════════════\n'
+    printf '\033[92m───────────────────────────────────────────────────────────\033[0m\n'
+    printf '\033[92m│ %s ✓\033[0m\n' "$title"
+    printf '\033[92m═══════════════════════════════════════════════════════════\033[0m\n'
   fi
 
   return $rc
