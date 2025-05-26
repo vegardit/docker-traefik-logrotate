@@ -134,7 +134,7 @@ jobs:
 
     - name: Build ${{ env.DOCKER_REPO_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
       env:
-        DOCKER_BASE_IMAGE: ghcr.io/dockerhub-mirror/alpine:latest
+        DOCKER_BASE_IMAGE: ghcr.io/dockerhub-mirror/alpine:3
         DOCKER_IMAGE_REPO: ${{ github.repository_owner }}/${{ env.DOCKER_REPO_NAME }}
         TRIVY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: bash build-image.sh

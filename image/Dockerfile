@@ -6,30 +6,26 @@
 # SPDX-FileContributor: Sebastian Thomschke
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
-#
 
-# https://hub.docker.com/_/alpine/tags?name=latest
+# https://hub.docker.com/_/alpine/tags?name=3
 # https://github.com/alpinelinux/docker-alpine/blob/master/Dockerfile
-ARG BASE_IMAGE=alpine:latest
+ARG BASE_IMAGE=alpine:3
+
+#############################################################
+# build final image
+#############################################################
 
 # https://github.com/hadolint/hadolint/wiki/DL3006 Always tag the version of an image explicitly
 # hadolint ignore=DL3006
-FROM ${BASE_IMAGE} AS builder
-
-LABEL maintainer="Vegard IT GmbH (vegardit.com)"
-
-# https://github.com/hadolint/hadolint/wiki/DL3002 Last USER should not be root
-# hadolint ignore=DL3002
-USER root
-
-ARG BASE_LAYER_CACHE_KEY
+FROM ${BASE_IMAGE} as final
 
 SHELL ["/bin/ash", "-euo", "pipefail", "-c"]
+
+ARG BASE_LAYER_CACHE_KEY
 
 # https://github.com/hadolint/hadolint/wiki/DL3018 Pin versions
 # hadolint ignore=DL3018
 RUN --mount=type=bind,source=.shared,target=/mnt/shared <<EOF
-  #!/bin/ash
   /mnt/shared/cmd/alpine-install-os-updates.sh
 
   echo "#################################################"
@@ -48,17 +44,27 @@ RUN --mount=type=bind,source=.shared,target=/mnt/shared <<EOF
 
 EOF
 
-ARG BUILD_DATE
-ARG GIT_BRANCH
-ARG GIT_COMMIT_HASH
-ARG GIT_COMMIT_DATE
-ARG GIT_REPO_URL
+ARG OCI_authors
+ARG OCI_title
+ARG OCI_description
+ARG OCI_source
+ARG OCI_revision
+ARG OCI_version
+ARG OCI_created
 
+ARG GIT_BRANCH
+ARG GIT_COMMIT_DATE
+
+# https://github.com/opencontainers/image-spec/blob/main/annotations.md
 LABEL \
-  org.label-schema.schema-version="1.0" \
-  org.label-schema.build-date=$BUILD_DATE \
-  org.label-schema.vcs-ref=$GIT_COMMIT_HASH \
-  org.label-schema.vcs-url=$GIT_REPO_URL
+  org.opencontainers.image.title="$OCI_title" \
+  org.opencontainers.image.description="$OCI_description" \
+  org.opencontainers.image.source="$OCI_source" \
+  org.opencontainers.image.revision="$OCI_revision" \
+  org.opencontainers.image.version="$OCI_version" \
+  org.opencontainers.image.created="$OCI_created"
+
+LABEL maintainer="$OCI_authors"
 
 # Default configuration: can be overridden at the docker command line
 ENV \
@@ -80,15 +86,15 @@ COPY image/logrotate.conf.template /opt/logrotate.conf.template
 COPY image/*.sh /opt/
 
 RUN <<EOF
-  #!/bin/ash
   echo "#################################################"
   echo "Writing build_info..."
   echo "#################################################"
-  echo -e "
-GIT_REPO:    $GIT_REPO_URL
+  cat <<EOT >/opt/build_info
+GIT_REPO:    $OCI_source
 GIT_BRANCH:  $GIT_BRANCH
-GIT_COMMIT:  $GIT_COMMIT_HASH @ $GIT_COMMIT_DATE
-IMAGE_BUILD: $BUILD_DATE" >/opt/build_info
+GIT_COMMIT:  $OCI_revision @ $GIT_COMMIT_DATE
+IMAGE_BUILD: $OCI_created
+EOT
   cat /opt/build_info
 
   chmod 444 /opt/logrotate.conf.template
