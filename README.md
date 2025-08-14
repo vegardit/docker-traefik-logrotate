@@ -50,7 +50,9 @@ services:
       LOGROTATE_TRIGGER_INTERVAL: daily  # rotate daily, must be one of: daily, weekly, monthly, yearly
       LOGROTATE_TRIGGER_SIZE: 50M        # rotate if log file size reaches 50MB
       LOGROTATE_MAX_BACKUPS: 14          # keep 14 backup copies per rotated log file
-      LOGROTATE_START_INDEX: 1           # first rotated file is called access.1.log
+      LOGROTATE_START_INDEX: 1           # first rotated file is called access.1.log (ignored when dateext is enabled)
+      LOGROTATE_USE_DATEEXT: false       # use date extension instead of numbers (e.g., access.log-20240814)
+      LOGROTATE_DATEFORMAT: "-%Y%m%d"    # date format for rotated files when dateext is enabled
       LOGROTATE_FILE_MODE: 0644          # file mode of the rotated file
       LOGROTATE_FILE_USER: root          # owning user of the rotated file
       LOGROTATE_FILE_GROUP: root         # owning group of the rotated file
@@ -63,6 +65,31 @@ services:
         condition: on-failure
         delay: 5s
 ```
+
+### Date-based Log Rotation
+
+To use date-based naming for rotated files instead of numbered suffixes, enable the `dateext` option:
+
+```yaml
+services:
+  logrotate:
+    image: vegardit/traefik-logrotate:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /var/log/traefik:/var/log/traefik:rw
+    environment:
+      LOGROTATE_USE_DATEEXT: "true"       # Enable date-based naming
+      LOGROTATE_DATEFORMAT: "-%Y%m%d"     # Results in: access.log-20240814.gz
+      # Alternative formats:
+      # LOGROTATE_DATEFORMAT: ".%Y-%m-%d" # Results in: access.log.2024-08-14.gz
+      # LOGROTATE_DATEFORMAT: "_%Y%m%d_%H" # Results in: access.log_20240814_15.gz (hourly)
+```
+
+When `LOGROTATE_USE_DATEEXT` is enabled:
+- Rotated files will be named with dates (e.g., `access.log-20240814.gz`)
+- The `LOGROTATE_START_INDEX` setting is ignored
+- Files are sorted lexically, so use year-month-day format for proper ordering
+- Supported format specifiers: `%Y` (year), `%m` (month), `%d` (day), `%H` (hour), `%M` (minute), `%S` (second)
 
 
 ## <a name="license"></a>License

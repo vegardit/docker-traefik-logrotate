@@ -60,6 +60,14 @@ if [[ ! -e $log_directory ]]; then
 fi
 
 log INFO "Generating [/etc/logrotate.conf] based on template [/opt/logrotate.conf.template]..."
+
+if [[ ${LOGROTATE_USE_DATEEXT} == "true" ]]; then
+  export LOGROTATE_NAMING_CONFIG="dateext
+  dateformat ${LOGROTATE_DATEFORMAT}"
+else
+  export LOGROTATE_NAMING_CONFIG="start ${LOGROTATE_START_INDEX}"
+fi
+
 if interpolated=$(interpolate < /opt/logrotate.conf.template); then
   echo "$interpolated" > /etc/logrotate.conf
   chmod 644 /etc/logrotate.conf
