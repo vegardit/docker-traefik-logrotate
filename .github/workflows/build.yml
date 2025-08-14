@@ -3,42 +3,49 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-ArtifactOfProjectHomePage: https://github.com/vegardit/docker-traefik-logrotate
 #
-# https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 name: Build
 
-on:
+on:  # https://docs.github.com/en/actions/reference/events-that-trigger-workflows
+  schedule:
+    # https://docs.github.com/en/actions/reference/choosing-when-your-workflow-runs/events-that-trigger-workflows
+    - cron: '0 17 * * 3'
   push:
     branches-ignore:  # build all branches except:
     - 'dependabot/**'  # prevent GHA triggered twice (once for commit to the branch and once for opening/syncing the PR)
     tags-ignore:  # don't build tags
     - '**'
     paths-ignore:
+    - '**/*.adoc'
     - '**/*.md'
     - '.editorconfig'
     - '.git*'
     - '.github/*.yml'
+    - '.github/ISSUE_TEMPLATE/*'
     - '.github/workflows/stale.yml'
   pull_request:
     paths-ignore:
+    - '**/*.adoc'
     - '**/*.md'
     - '.editorconfig'
     - '.git*'
+    - '.github/ISSUE_TEMPLATE/*'
     - '.github/*.yml'
     - '.github/workflows/stale.yml'
-  schedule:
-    # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows
-    - cron: '0 17 * * 3'
   workflow_dispatch:
-    # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#workflow_dispatch
+    # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#workflow_dispatch
+
 
 defaults:
   run:
     shell: bash
 
+
 env:
   DOCKER_REPO_NAME: traefik-logrotate
   DOCKER_IMAGE_TAG: latest
   TRIVY_CACHE_DIR: ~/.trivy/cache
+
 
 jobs:
 
@@ -55,7 +62,7 @@ jobs:
     - name: "Show: GitHub context"
       env:
         GITHUB_CONTEXT: ${{ toJSON(github) }}
-      run: echo $GITHUB_CONTEXT
+      run: printf '%s' "$GITHUB_CONTEXT" | python -m json.tool
 
 
     - name: "Show: environment variables"
@@ -63,7 +70,7 @@ jobs:
 
 
     - name: Git Checkout
-      uses: actions/checkout@v4  # https://github.com/actions/checkout
+      uses: actions/checkout@v5  # https://github.com/actions/checkout
 
 
     - name: Run the sh-checker
@@ -154,7 +161,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}
       cancel-in-progress: false
-      
+
     permissions:
       packages: write
 

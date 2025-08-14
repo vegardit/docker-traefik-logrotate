@@ -30,6 +30,10 @@ declare -A image_meta=(
   [created]="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 )
 
+
+#################################################
+# define tags
+#################################################
 declare -a tags=()
 tags+=("${DOCKER_IMAGE_TAG:-latest}")
 
@@ -138,7 +142,7 @@ fi
 #################################################
 if [[ ${DOCKER_AUDIT_IMAGE:-1} == "1" ]]; then
   run_step "Auditing docker image [$image_name]" -- \
-   bash "$shared_lib/cmd/audit-image.sh" "$image_name"
+    bash "$shared_lib/cmd/audit-image.sh" "$image_name"
 fi
 
 
