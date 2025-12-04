@@ -18,8 +18,19 @@ traefik_container_id=$(eval "${TRAEFIK_CONTAINER_ID_COMMAND}")
 
 if [[ -z $traefik_container_id ]]; then
   log WARN "Could not determine Traefik PID. Is Traefik running?"
-  exit 0
+else
+  log INFO "Notifying Traefik in container [$traefik_container_id]..."
+  if ! docker kill --signal=USR1 "$traefik_container_id"; then
+    log WARN "Failed to send USR1 signal to Traefik container [$traefik_container_id]"
+  fi
 fi
 
-log INFO "Notifying Traefik in container [$traefik_container_id]..."
-docker kill --signal=USR1 "$traefik_container_id"
+#################################################
+# execute optional post-rotation command
+#################################################
+if [[ -n ${POST_LOGROTATE_COMMAND:-} ]]; then
+  log INFO "Executing POST_LOGROTATE_COMMAND: [$POST_LOGROTATE_COMMAND]..."
+  if ! bash -lc "$POST_LOGROTATE_COMMAND"; then
+    log WARN "POST_LOGROTATE_COMMAND failed with exit code $?"
+  fi
+fi

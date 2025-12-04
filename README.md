@@ -60,6 +60,8 @@ services:
       CRON_LOG_LEVEL: 8                  # see https://unix.stackexchange.com/a/414010/378036
       # command to determine the id of the container running Traefik:
       TRAEFIK_CONTAINER_ID_COMMAND: docker ps --no-trunc --quiet --filter label=org.opencontainers.image.title=Traefik
+      # optional: command to run after log rotation, e.g. restart goaccess or call a custom script
+      POST_LOGROTATE_COMMAND: ""         # example: "docker restart goaccess" or "/opt/post-logrotate.sh"
     deploy:
       restart_policy:
         condition: on-failure
