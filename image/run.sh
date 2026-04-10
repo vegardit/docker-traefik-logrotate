@@ -40,7 +40,13 @@ fi
 # to prevent logorate error "error: /etc/logrotate.conf:13 unknown user '1234'"
 if [[ $LOGROTATE_FILE_USER =~ ^[0-9]+$ ]] && ! getent passwd "$LOGROTATE_FILE_USER" >/dev/null; then
   log INFO "Creating user with UID [$LOGROTATE_FILE_USER]..."
-  adduser "u$LOGROTATE_FILE_USER" -u "$LOGROTATE_FILE_USER" -D -H
+  # Reuse an existing group with the same numeric ID because Alpine adduser fails
+  # when the UID is free but that GID already exists (for example www-data=82).
+  if existing_group=$(getent group "$LOGROTATE_FILE_USER"); then
+    adduser "u$LOGROTATE_FILE_USER" -u "$LOGROTATE_FILE_USER" -G "${existing_group%%:*}" -D -H
+  else
+    adduser "u$LOGROTATE_FILE_USER" -u "$LOGROTATE_FILE_USER" -D -H
+  fi
 fi
 
 if [[ $LOGROTATE_FILE_GROUP =~ ^[0-9]+$ ]] && ! getent group "$LOGROTATE_FILE_GROUP" >/dev/null; then
