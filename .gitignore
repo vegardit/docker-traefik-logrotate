@@ -1,31 +1,10 @@
-# Local work folder that is not checked in
-_LOCAL/
+# Local work folders that is not checked in
+_*/
 
-.shared
-
-# Eclipse
-.apt_generated/
-.checkstyle
-.classpath
-.factorypath
-.project
-.settings/
-bin/
-
-# IntelliJ
-/.idea
-/*.iml
-/*.ipr
-/*.iws
-
-# NetBeans
-nb-configuration.xml
-
-# Visual Studio Code
-/.vscode
-
-# OSX
-.DS_Store
+.*
+!.dockerignore
+!.editorconfig
+!.git*
 
 # Vim
 *.swo
@@ -34,6 +13,3 @@ nb-configuration.xml
 # patch
 *.orig
 *.rej
-
-# nektos/act
-.actrc

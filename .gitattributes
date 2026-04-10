@@ -33,6 +33,7 @@
 *.adoc       text
 *.csv        text
 *.md         text diff=markdown
+*.mdx        text diff=markdown
 *.txt        text
 
 
@@ -125,6 +126,7 @@
 
 
 # Web
+*.astro      text
 *.css        text diff=css
 *.htm        text diff=html
 *.html       text diff=html
