@@ -47,6 +47,10 @@ env:
   TRIVY_CACHE_DIR: ~/.trivy/cache
 
 
+permissions:
+  contents: read
+
+
 jobs:
 
   ###########################################################
@@ -59,6 +63,12 @@ jobs:
       packages: write
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      with:
+        egress-policy: audit
+
+
     - name: "Show: GitHub context"
       env:
         GITHUB_CONTEXT: ${{ toJSON(github) }}
@@ -69,12 +79,16 @@ jobs:
       run: env | sort
 
 
+    - name: "Show: Bash version"
+      run: bash --version
+
+
     - name: Git Checkout
-      uses: actions/checkout@v7  # https://github.com/actions/checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
 
     - name: Run the sh-checker
-      uses: luizm/action-sh-checker@master  # https://github.com/marketplace/actions/sh-checker
+      uses: luizm/action-sh-checker@883217215b11c1fabbf00eb1a9a041f62d74c744 # master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SHFMT_OPTS: --simplify --keep-padding
@@ -85,13 +99,13 @@ jobs:
 
 
     - name: Check Dockerfile
-      uses: hadolint/hadolint-action@v3.4.0
+      uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
       with:
         dockerfile: image/Dockerfile
 
 
     - name: Cache trivy cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ env.TRIVY_CACHE_DIR }}
         # https://github.com/actions/cache/issues/342#issuecomment-673371329
@@ -115,7 +129,7 @@ jobs:
         set -x
         if [[ $GITHUB_REF_NAME == 'main' && $GITHUB_EVENT_NAME != 'pull_request' && -z "$ACT" ]]; then
           echo "DOCKER_PUSH_GHCR=true" >> "$GITHUB_ENV"
-          echo "DOCKER_PUSH_GHCR=true" >> $GITHUB_OUTPUT
+          echo "DOCKER_PUSH_GHCR=true" >> "$GITHUB_OUTPUT"
           if [[ -n "${{ secrets.DOCKER_HUB_USERNAME }}" ]]; then
             echo "DOCKER_PUSH=true" >> "$GITHUB_ENV"
           fi
@@ -124,7 +138,7 @@ jobs:
 
     - name: Login to docker.io
       if: ${{ env.DOCKER_PUSH }}
-      uses: docker/login-action@v4
+      uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
@@ -132,7 +146,7 @@ jobs:
 
     - name: Login to ghcr.io
       if: ${{ env.DOCKER_PUSH_GHCR }}
-      uses: docker/login-action@v4
+      uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -151,6 +165,28 @@ jobs:
 
 
   ###########################################################
+  dependabot-pr-auto-merge:
+  ###########################################################
+    needs: build
+    # Check both the actor and PR author so this write-capable job only runs for Dependabot updates.
+    if: >-
+      needs.build.result == 'success' && 
+      github.actor == 'dependabot[bot]' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    uses: sebthom/gha-shared/.github/workflows/reusable.dependabot-auto-merge.yml@v1
+    with:
+      package-ecosystems: '["github-actions"]'
+      merge-method: squash
+      merge-major-updates: false
+
+
+  ###########################################################
   delete-untagged-images:
   ###########################################################
     runs-on: ubuntu-latest  # https://github.com/actions/runner-images#available-images
@@ -166,8 +202,13 @@ jobs:
       packages: write
 
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      with:
+        egress-policy: audit
+
     - name: Delete untagged images
-      uses: dataaxiom/ghcr-cleanup-action@v1
+      uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
       with:
         package: ${{ env.DOCKER_REPO_NAME }}
         delete-untagged: true
