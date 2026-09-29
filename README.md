@@ -4,7 +4,6 @@
 [![License](https://img.shields.io/github/license/vegardit/docker-traefik-logrotate.svg?label=license)](#license)
 [![Docker Pulls](https://img.shields.io/docker/pulls/vegardit/traefik-logrotate.svg)](https://hub.docker.com/r/vegardit/traefik-logrotate)
 [![Docker Stars](https://img.shields.io/docker/stars/vegardit/traefik-logrotate.svg)](https://hub.docker.com/r/vegardit/traefik-logrotate)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.1%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 1. [What is it?](#what-is-it)
 1. [Usage](#usage)

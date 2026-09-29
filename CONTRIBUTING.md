@@ -5,11 +5,6 @@ Thanks for your interest in contributing to this project!
 We want to make contributing as easy and transparent as possible.
 
 
-## Code of Conduct
-
-Our code of conduct is described in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-
-
 ## Issues
 
 We use GitHub issues to track bugs and feature requests. Please ensure your description is clear and has sufficient instructions to be able to reproduce the issue.
