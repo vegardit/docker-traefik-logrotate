@@ -49,6 +49,8 @@ services:
       LOGROTATE_TRIGGER_INTERVAL: daily  # rotate daily, must be one of: daily, weekly, monthly, yearly
       LOGROTATE_TRIGGER_SIZE: 50M        # rotate if log file size reaches 50MB
       LOGROTATE_MAX_BACKUPS: 14          # keep 14 backup copies per rotated log file
+      LOGROTATE_MAX_AGE_DAYS: 14         # remove older archives during rotation; 0 disables age-based removal
+      LOGROTATE_IFEMPTY: "false"        # set to "true" to rotate empty logs too
       LOGROTATE_START_INDEX: 1           # first rotated file is called access.1.log (ignored when dateext is enabled)
       LOGROTATE_USE_DATEEXT: false       # use date extension instead of numbers (e.g., access.log-20240814)
       LOGROTATE_DATEFORMAT: "-%Y%m%d"    # date format for rotated files when dateext is enabled
@@ -66,6 +68,51 @@ services:
         condition: on-failure
         delay: 5s
 ```
+
+### Rotation Scenarios
+
+Merge the settings from the relevant scenario into the `logrotate` service's `environment` block above.
+
+#### Target a 14-day retention limit
+
+Use daily rotation with 12 archives when logs should be removed within 14 days.
+Together with the active file, this retains roughly 13 days and leaves about one day of margin.
+
+```yaml
+environment:
+  LOGROTATE_TRIGGER_INTERVAL: daily
+  LOGROTATE_IFEMPTY: "true"
+  LOGROTATE_MAX_AGE_DAYS: "12"
+  LOGROTATE_MAX_BACKUPS: "12"
+```
+
+`LOGROTATE_IFEMPTY: "true"` keeps rotation and cleanup running on days without requests.
+Size-triggered rotations can shorten the retained history.
+
+This target assumes successful daily rotation; downtime or failed runs can delay deletion.
+Age-based cleanup uses archive modification times and runs only during rotation,
+so setting `LOGROTATE_MAX_AGE_DAYS: "14"` alone does not enforce a 14-day deadline for individual log entries.
+
+#### Keep 14 archives and rotate at 50 MiB
+
+Use this when you want to limit the number of archives and rotate large logs, regardless of their age.
+
+```yaml
+environment:
+  LOGROTATE_TRIGGER_INTERVAL: daily
+  LOGROTATE_TRIGGER_SIZE: 50M
+  LOGROTATE_MAX_BACKUPS: "14"
+  LOGROTATE_MAX_AGE_DAYS: "0"
+  LOGROTATE_IFEMPTY: "false"
+```
+
+This keeps up to 14 archives per log file, plus the active file.
+`LOGROTATE_MAX_AGE_DAYS: "0"` disables age-based deletion.
+Empty logs are skipped, so archives can remain indefinitely if no new requests arrive.
+
+Nonempty logs rotate daily or sooner when they exceed 50 MiB.
+With the default cron schedule, sizes are checked once per minute; files can grow beyond the threshold between checks.
+Compression also affects archive sizes, so these settings do not impose a fixed disk-space quota.
 
 ### Date-based Log Rotation
 

@@ -2,10 +2,11 @@ ${LOGROTATE_LOGS} {
   ${LOGROTATE_TRIGGER_INTERVAL}
   maxsize ${LOGROTATE_TRIGGER_SIZE}
   rotate ${LOGROTATE_MAX_BACKUPS}
+  maxage ${LOGROTATE_MAX_AGE_DAYS}
   ${LOGROTATE_NAMING_CONFIG}
 
   missingok
-  notifempty
+  ${LOGROTATE_EMPTY_CONFIG}
 
   compress
   delaycompress

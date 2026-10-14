@@ -35,6 +35,25 @@ fi
 
 
 #################################################
+# validate retention settings
+#################################################
+if [[ ! $LOGROTATE_MAX_AGE_DAYS =~ ^[0-9]+$ ]]; then
+  log ERROR "LOGROTATE_MAX_AGE_DAYS must be a non-negative integer."
+  exit 1
+fi
+
+# Keep the existing empty-log behavior unless rotation without traffic is requested.
+case $LOGROTATE_IFEMPTY in
+  true) export LOGROTATE_EMPTY_CONFIG=ifempty ;;
+  false) export LOGROTATE_EMPTY_CONFIG=notifempty ;;
+  *)
+    log ERROR "LOGROTATE_IFEMPTY must be 'true' or 'false'."
+    exit 1
+    ;;
+esac
+
+
+#################################################
 # creating user/group if required
 #################################################
 # to prevent logorate error "error: /etc/logrotate.conf:13 unknown user '1234'"
